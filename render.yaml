@@ -2,7 +2,7 @@
 # Push ce dossier sur un repo GitHub, puis dans Render : New > Blueprint, pointe sur ce repo.
 services:
   - type: web
-    name: quishing-sim-ecam
+    name: ecam.student.help
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
