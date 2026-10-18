@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stats — Campagne quishing</title>
+  <style>
+    :root { --bleu:#0b2e59; --bg:#f4f5f7; }
+    body { font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg);
+           margin:0; color:#1c2430; }
+    .bar { background:var(--bleu); color:#fff; padding:16px 24px; font-weight:600; }
+    .wrap { max-width:720px; margin:36px auto; padding:0 16px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; }
+    .kpi { background:#fff; border-radius:12px; padding:20px; box-shadow:0 2px 12px rgba(0,0,0,.06); }
+    .kpi .n { font-size:34px; font-weight:700; color:var(--bleu); }
+    .kpi .l { font-size:13px; color:#5a6472; margin-top:4px; }
+    h2 { font-size:16px; color:var(--bleu); margin:30px 0 10px; }
+    table { width:100%; border-collapse:collapse; background:#fff; border-radius:12px; overflow:hidden;
+            box-shadow:0 2px 12px rgba(0,0,0,.06); }
+    td,th { padding:12px 16px; text-align:left; font-size:14px; border-bottom:1px solid #eef1f4; }
+    th { background:#f0f3f7; color:#45505f; }
+    .note { font-size:12px; color:#8a94a2; margin-top:18px; }
+  </style>
+</head>
+<body>
+  <div class="bar">Campagne quishing — tableau de bord</div>
+  <div class="wrap">
+    <div class="grid">
+      <div class="kpi"><div class="n">{{ visites }}</div><div class="l">Pages ouvertes (scans)</div></div>
+      <div class="kpi"><div class="n">{{ total }}</div><div class="l">Formulaires envoyés</div></div>
+      <div class="kpi"><div class="n">{{ matricules }}</div><div class="l">Matricules communiqués</div></div>
+    </div>
+
+    <h2>Champs sensibles remplis (nombre d'étudiants)</h2>
+    <table>
+      <tr><th>Catégorie de donnée</th><th>Nombre ayant rempli</th></tr>
+      {% for champ, n in par_champ.items() %}
+      <tr><td>{{ champ.replace('_',' ') }}</td><td>{{ n }}</td></tr>
+      {% endfor %}
+    </table>
+
+    <p class="note">Seuls des agrégats sont affichés. Aucune valeur saisie (adresse, téléphone, date de naissance) n'est stockée : uniquement un compteur oui/non par catégorie, conformément au cadre de l'exercice.</p>
+  </div>
+</body>
+</html>

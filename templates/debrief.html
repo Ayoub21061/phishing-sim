@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>C'était une simulation</title>
+  <style>
+    :root { --bleu:#0b2e59; --rouge:#e2001a; --vert:#1a8a4a; --bg:#f4f5f7; }
+    body { font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:var(--bg);
+           margin:0; color:#1c2430; }
+    .bar { background:var(--bleu); color:#fff; padding:16px 24px; font-weight:600; font-size:18px; }
+    .wrap { max-width:620px; margin:40px auto; padding:0 16px; }
+    .card { background:#fff; border-radius:12px; padding:32px 28px; box-shadow:0 4px 20px rgba(0,0,0,.08); }
+    .tag { display:inline-block; background:#fdecec; color:var(--rouge); font-weight:700;
+           padding:6px 12px; border-radius:20px; font-size:13px; letter-spacing:.3px; }
+    h1 { font-size:24px; color:var(--bleu); margin:16px 0 10px; }
+    p { line-height:1.6; font-size:15px; color:#303a47; }
+    ul { line-height:1.7; font-size:15px; color:#303a47; }
+    .ok { background:#eaf6ef; border-left:4px solid var(--vert); padding:14px 16px;
+          border-radius:6px; font-size:14px; margin-top:22px; }
+    strong { color:var(--bleu); }
+  </style>
+</head>
+<body>
+  <div class="bar">ECAM — Laboratoire sécurité logicielle</div>
+  <div class="wrap">
+    <div class="card">
+      <span class="tag">⚠️ SIMULATION DE PHISHING</span>
+      <h1>Vous venez de scanner un QR code piégé.</h1>
+      <p>Pas de panique : cette page fait partie d'un <strong>exercice de sensibilisation autorisé par l'ECAM</strong>. Aucune de vos données n'a été volée. Mais si c'était une vraie attaque, elle le serait.</p>
+
+      <p>Ce QR code aurait pu se trouver n'importe où — une affiche, un sticker collé sur un mur, un faux avis sur une porte. En le scannant et en remplissant ce formulaire, vous auriez transmis vos informations personnelles à un inconnu.</p>
+
+      <p><strong>Les bons réflexes :</strong></p>
+      <ul>
+        <li>Méfiez-vous des QR codes dans l'espace public, surtout ceux qui demandent des infos personnelles.</li>
+        <li>Vérifiez toujours l'adresse (URL) vers laquelle un QR code vous envoie <em>avant</em> de saisir quoi que ce soit.</li>
+        <li>L'ECAM ne vous demandera jamais vos données perso via un QR code affiché dans un couloir.</li>
+        <li>Dans le doute, ne remplissez rien et signalez-le.</li>
+      </ul>
+
+      <div class="ok">
+        🔒 <strong>Ce que cette page a réellement enregistré :</strong> uniquement votre matricule (pour le suivi de l'exercice) et, pour chaque autre champ, un simple « rempli / pas rempli ». <strong>Aucune valeur que vous avez tapée</strong> (adresse, téléphone, date de naissance) n'a été conservée.
+      </div>
+    </div>
+  </div>
+</body>
+</html>
