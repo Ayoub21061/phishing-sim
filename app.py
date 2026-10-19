@@ -109,18 +109,25 @@ def submit():
     """
     Réception du formulaire.
 
-    ICI est le coeur de la conformité : on calcule des booléens de présence,
-    puis on jette toutes les valeurs sensibles. Seul le matricule survit.
+    ICI est le coeur de la conformité : le frontend (voir le <script> dans
+    form.html) calcule déjà les booléens de présence EN LOCAL, dans le
+    navigateur de l'étudiant, et c'est tout ce qu'il envoie. Les valeurs
+    saisies (adresse, téléphone, date de naissance) ne sont jamais
+    transmises sur le réseau — ce backend ne les reçoit donc jamais, il n'y
+    a rien à "jeter" ici. On se contente de valider que ce qu'on reçoit est
+    bien des 0/1, sans jamais s'attendre à du texte libre pour ces champs.
     """
-    raw = {f: request.form.get(f, "") for f in SENSITIVE_FIELDS}
-
-    # présence = le champ contient autre chose que du vide / espaces
-    presence = {f: 1 if raw[f].strip() else 0 for f in SENSITIVE_FIELDS}
     matricule_clean = request.form.get("matricule", "").strip()
     matricule_fourni = 1 if matricule_clean else 0
 
-    # /!\ à partir d'ici, `raw` n'est plus jamais utilisé.
-    # Aucune valeur sensible n'atteint la base.
+    # Le frontend n'envoie que "0" ou "1" pour ces champs. On le vérifie
+    # strictement : toute autre valeur (texte libre glissé par erreur ou
+    # tentative de contournement) est traitée comme "non rempli", jamais
+    # stockée telle quelle.
+    presence = {
+        f: 1 if request.form.get(f"{f}_rempli") == "1" else 0
+        for f in SENSITIVE_FIELDS
+    }
     cols = (
         ["matricule", "matricule_fourni"]
         + [f"{f}_rempli" for f in SENSITIVE_FIELDS]
@@ -210,7 +217,29 @@ def admin():
     finally:
         conn.close()
 
-    return render_template("admin.html", cols=cols, rows=rows)
+    return render_template("admin.html", cols=cols, rows=rows, token=ADMIN_TOKEN)
+
+
+@app.route("/admin/reset", methods=["POST"])
+def admin_reset():
+    """
+    Vide les tables submissions/visits. Protégé par le même jeton que
+    /admin. Utile pour repartir de zéro après une phase de tests, avant de
+    diffuser le vrai QR code.
+    """
+    if not ADMIN_TOKEN or request.form.get("token") != ADMIN_TOKEN:
+        abort(403)
+
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM submissions")
+        cur.execute("DELETE FROM visits")
+        conn.commit()
+    finally:
+        conn.close()
+
+    return redirect(url_for("admin", token=ADMIN_TOKEN))
 
 
 init_db()
