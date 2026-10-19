@@ -16,6 +16,16 @@
 <body>
   <h1>Soumissions — {{ rows|length }} ligne(s)</h1>
   <p class="count">Rappel : seuls le matricule et des indicateurs oui/non (0/1) sont stockés, jamais les valeurs saisies.</p>
+
+  <form method="post" action="/admin/reset"
+        onsubmit="return confirm('Vider définitivement toutes les soumissions et visites ? Impossible à annuler.');"
+        style="margin: 16px 0;">
+    <input type="hidden" name="token" value="{{ token }}">
+    <button type="submit"
+            style="background:#b00020; color:white; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;">
+      Vider la base (tests terminés)
+    </button>
+  </form>
   <table>
     <thead>
       <tr>
