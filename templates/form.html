@@ -18,7 +18,9 @@
     input { width:100%; padding:11px 12px; border:1px solid #cdd3db; border-radius:8px; font-size:15px; }
     button { width:100%; margin-top:22px; background:var(--rouge); color:#fff; border:none;
              padding:13px; border-radius:8px; font-size:16px; font-weight:600; cursor:pointer; }
+    button:disabled { opacity:.6; cursor:default; }
     .foot { font-size:11px; color:#8a94a2; margin-top:16px; text-align:center; }
+    .err { color:var(--rouge); font-size:13px; margin-top:10px; display:none; }
   </style>
 </head>
 <body>
@@ -27,23 +29,82 @@
     <div class="card">
       <h1>Remplissez le formulaire d'inscription</h1>
       <p class="lead">Bénéficiez d'un student pack et d'un lien vers un Google Drive à la fin du workshop.</p>
-      <form action="/submit" method="post">
+
+      <!--
+        IMPORTANT (privacy-by-design) :
+        Les champs ci-dessous N'ONT PAS d'attribut "name". C'est volontaire :
+        même si le JavaScript ne s'exécutait pas (désactivé, bloqué, erreur),
+        une soumission "native" du formulaire n'enverrait AUCUNE de ces
+        valeurs au serveur — il n'y a simplement rien à envoyer côté HTML.
+
+        Le script juste en dessous lit ces champs directement dans le DOM,
+        calcule un simple booléen "rempli / pas rempli" EN LOCAL, dans le
+        navigateur, puis n'envoie QUE matricule + ces booléens au serveur.
+        La valeur tapée par l'utilisateur ne quitte jamais sa machine.
+      -->
+      <form id="piege-form">
         <label>Matricule étudiant</label>
-        <input name="matricule" placeholder="ex. 2XXXXX" autocomplete="off">
+        <input id="matricule" placeholder="ex. 2XXXXX" autocomplete="off">
 
         <label>Adresse</label>
-        <input name="adresse" placeholder="Rue, numéro, code postal" autocomplete="off">
+        <input id="adresse" placeholder="Rue, numéro, code postal" autocomplete="off">
 
         <label>Numéro de téléphone</label>
-        <input name="telephone" placeholder="+32 ..." autocomplete="off">
+        <input id="telephone" placeholder="+32 ..." autocomplete="off">
 
         <label>Date de naissance</label>
-        <input name="date_naissance" placeholder="JJ/MM/AAAA" autocomplete="off">
+        <input id="date_naissance" placeholder="JJ/MM/AAAA" autocomplete="off">
 
-        <button type="submit">Confirmer mes informations</button>
+        <button id="submit-btn" type="submit">Confirmer mes informations</button>
+        <div class="err" id="err-msg">Une erreur est survenue, réessaie.</div>
       </form>
       <div class="foot">Espace sécurisé · ECAM Brussels Engineering School</div>
     </div>
   </div>
+
+  <script>
+    (function () {
+      var form = document.getElementById('piege-form');
+      var btn = document.getElementById('submit-btn');
+      var errMsg = document.getElementById('err-msg');
+
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        // Lecture des valeurs EN LOCAL — rien de ceci n'est encore envoyé.
+        var matricule = document.getElementById('matricule').value.trim();
+        var adresse = document.getElementById('adresse').value;
+        var telephone = document.getElementById('telephone').value;
+        var dateNaissance = document.getElementById('date_naissance').value;
+
+        // Conversion en booléen de présence, toujours en local.
+        var payload = new URLSearchParams();
+        payload.set('matricule', matricule);
+        payload.set('adresse_rempli', adresse.trim() ? '1' : '0');
+        payload.set('telephone_rempli', telephone.trim() ? '1' : '0');
+        payload.set('date_naissance_rempli', dateNaissance.trim() ? '1' : '0');
+
+        // À partir d'ici, les variables adresse/telephone/dateNaissance ne
+        // sont plus jamais lues : seul "payload" (matricule + booléens)
+        // part vers le serveur.
+        btn.disabled = true;
+        errMsg.style.display = 'none';
+
+        fetch('/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: payload.toString()
+        })
+          .then(function (res) {
+            if (!res.ok) throw new Error('bad status');
+            window.location.href = '/debrief';
+          })
+          .catch(function () {
+            btn.disabled = false;
+            errMsg.style.display = 'block';
+          });
+      });
+    })();
+  </script>
 </body>
 </html>
