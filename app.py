@@ -11,16 +11,40 @@ Principe de privacy-by-design (exigence centrale du brief, slide 21) :
 
 La conversion valeur -> booléen se fait dès la réception, et la valeur réelle
 n'est jamais réutilisée ailleurs que pour ce test de présence.
+
+Stockage : PostgreSQL si DATABASE_URL est défini (cas Render, disque
+persistant), sinon SQLite en local (pratique pour développer sur ta
+machine). Le choix est automatique, rien à changer à la main.
 """
 
 from datetime import datetime, timezone
 from pathlib import Path
-import sqlite3
+import os
 
 from flask import Flask, render_template, request, redirect, url_for
 
 APP_DIR = Path(__file__).parent
 DB_PATH = APP_DIR / "data.db"
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
+USING_POSTGRES = bool(DATABASE_URL)
+
+if USING_POSTGRES:
+    import psycopg2
+
+    def get_conn():
+        return psycopg2.connect(DATABASE_URL)
+
+    PLACEHOLDER = "%s"
+    ID_COLUMN = "id SERIAL PRIMARY KEY"
+else:
+    import sqlite3
+
+    def get_conn():
+        return sqlite3.connect(DB_PATH)
+
+    PLACEHOLDER = "?"
+    ID_COLUMN = "id INTEGER PRIMARY KEY AUTOINCREMENT"
 
 app = Flask(__name__)
 
@@ -30,13 +54,15 @@ SENSITIVE_FIELDS = ["adresse", "telephone", "date_naissance"]
 
 
 def init_db() -> None:
-    """Crée la table si besoin. Une colonne booléenne par champ sensible."""
+    """Crée les tables si besoin. Une colonne booléenne par champ sensible."""
     cols = ", ".join(f"{f}_rempli INTEGER NOT NULL DEFAULT 0" for f in SENSITIVE_FIELDS)
-    with sqlite3.connect(DB_PATH) as con:
-        con.execute(
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute(
             f"""
             CREATE TABLE IF NOT EXISTS submissions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                {ID_COLUMN},
                 matricule TEXT,
                 matricule_fourni INTEGER NOT NULL DEFAULT 0,
                 {cols},
@@ -45,24 +71,32 @@ def init_db() -> None:
             """
         )
         # Compteur de visites (= nombre d'étudiants ayant "cliqué" / ouvert la page)
-        con.execute(
-            """
+        cur.execute(
+            f"""
             CREATE TABLE IF NOT EXISTS visits (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                {ID_COLUMN},
                 created_at TEXT NOT NULL
             )
             """
         )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 @app.route("/")
 def page_piege():
     """Page atteinte via le QR code : le faux formulaire."""
-    with sqlite3.connect(DB_PATH) as con:
-        con.execute(
-            "INSERT INTO visits (created_at) VALUES (?)",
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            f"INSERT INTO visits (created_at) VALUES ({PLACEHOLDER})",
             (datetime.now(timezone.utc).isoformat(),),
         )
+        conn.commit()
+    finally:
+        conn.close()
     return render_template("form.html", fields=SENSITIVE_FIELDS)
 
 
@@ -93,12 +127,18 @@ def submit():
         + [presence[f] for f in SENSITIVE_FIELDS]
         + [datetime.now(timezone.utc).isoformat()]
     )
-    placeholders = ", ".join("?" for _ in cols)
-    with sqlite3.connect(DB_PATH) as con:
-        con.execute(
+    placeholders = ", ".join(PLACEHOLDER for _ in cols)
+
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute(
             f"INSERT INTO submissions ({', '.join(cols)}) VALUES ({placeholders})",
             vals,
         )
+        conn.commit()
+    finally:
+        conn.close()
 
     return redirect(url_for("debrief"))
 
@@ -115,18 +155,21 @@ def stats():
     Tableau de bord pour le rapport final (slide 24).
     Ne montre que des agrégats, jamais une ligne individuelle exploitable.
     """
-    with sqlite3.connect(DB_PATH) as con:
-        visites = con.execute("SELECT COUNT(*) FROM visits").fetchone()[0]
-        total = con.execute("SELECT COUNT(*) FROM submissions").fetchone()[0]
-        matricules = con.execute(
-            "SELECT COUNT(*) FROM submissions WHERE matricule_fourni = 1"
-        ).fetchone()[0]
-        par_champ = {
-            f: con.execute(
-                f"SELECT COALESCE(SUM({f}_rempli), 0) FROM submissions"
-            ).fetchone()[0]
-            for f in SENSITIVE_FIELDS
-        }
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM visits")
+        visites = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM submissions")
+        total = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM submissions WHERE matricule_fourni = 1")
+        matricules = cur.fetchone()[0]
+        par_champ = {}
+        for f in SENSITIVE_FIELDS:
+            cur.execute(f"SELECT COALESCE(SUM({f}_rempli), 0) FROM submissions")
+            par_champ[f] = cur.fetchone()[0]
+    finally:
+        conn.close()
 
     return render_template(
         "stats.html",
