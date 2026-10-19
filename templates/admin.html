@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin — soumissions</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; background: #fafafa; }
+    table { border-collapse: collapse; width: 100%; background: white; }
+    th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; font-size: 14px; }
+    th { background: #222; color: white; }
+    tr:nth-child(even) { background: #f3f3f3; }
+    h1 { font-size: 1.2rem; }
+    p.count { color: #555; }
+  </style>
+</head>
+<body>
+  <h1>Soumissions — {{ rows|length }} ligne(s)</h1>
+  <p class="count">Rappel : seuls le matricule et des indicateurs oui/non (0/1) sont stockés, jamais les valeurs saisies.</p>
+  <table>
+    <thead>
+      <tr>
+        {% for c in cols %}<th>{{ c }}</th>{% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        {% for val in row %}<td>{{ val }}</td>{% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

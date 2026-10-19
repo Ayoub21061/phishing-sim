@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 import os
 
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, abort
 
 APP_DIR = Path(__file__).parent
 DB_PATH = APP_DIR / "data.db"
@@ -47,6 +47,10 @@ else:
     ID_COLUMN = "id INTEGER PRIMARY KEY AUTOINCREMENT"
 
 app = Flask(__name__)
+
+# Jeton d'accès pour la page /admin (voir plus bas). À définir comme variable
+# d'environnement ADMIN_TOKEN sur Render — jamais commité en clair dans le code.
+ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN")
 
 # Les champs "piège" du formulaire, autres que le matricule.
 # Pour chacun on ne stockera qu'un booléen "rempli / pas rempli".
@@ -178,6 +182,35 @@ def stats():
         matricules=matricules,
         par_champ=par_champ,
     )
+
+
+@app.route("/admin")
+def admin():
+    """
+    Vue "brute" des soumissions, pour consulter les données sans passer par
+    le Shell Render (payant) ni par psql depuis un réseau qui bloque le port
+    5432 (eduroam, par ex.). Protégée par un jeton passé en query string :
+        /admin?token=...
+    Reste des agrégats pour toute personne non autorisée : on n'affiche
+    jamais ça publiquement, seul le lien avec le bon token donne accès.
+    """
+    if not ADMIN_TOKEN or request.args.get("token") != ADMIN_TOKEN:
+        abort(403)
+
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        cols = (
+            ["id", "matricule", "matricule_fourni"]
+            + [f"{f}_rempli" for f in SENSITIVE_FIELDS]
+            + ["created_at"]
+        )
+        cur.execute(f"SELECT {', '.join(cols)} FROM submissions ORDER BY id DESC")
+        rows = cur.fetchall()
+    finally:
+        conn.close()
+
+    return render_template("admin.html", cols=cols, rows=rows)
 
 
 init_db()
